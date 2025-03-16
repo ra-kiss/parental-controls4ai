@@ -1,26 +1,38 @@
+from openai import OpenAI
 import streamlit as st
 
-st.title("Hi")
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# Initialize chat history
+if "openai_model" not in st.session_state:
+    st.session_state["openai_model"] = "gpt-3.5-turbo"
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat messages from history on app rerun
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# React to user input
 if prompt := st.chat_input("What is up?"):
-    # Display user message in chat message container
-    st.chat_message("user").markdown(prompt)
-    # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-    response = prompt
-    # Display assistant response in chat message container
     with st.chat_message("assistant"):
-        st.markdown(response)
-    # Add assistant response to chat history
+        stream = client.chat.completions.create(
+            model=st.session_state["openai_model"],
+            messages=[
+                {"role": m["role"], "content": m["content"]}
+                for m in st.session_state.messages
+            ],
+            stream=True,
+        )
+        response = st.write_stream(stream)
     st.session_state.messages.append({"role": "assistant", "content": response})
+
+with st.sidebar:
+    st.markdown("# Parental Controls")
+    banned_keywords = st.text_area("# Banned Keywords")
+    # Banned Keywords takes a comma-separated list of values, uncomment line below to see output in real time
+    #st.text(banned_keywords.replace("\n", "").split(","))
+
