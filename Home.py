@@ -1,47 +1,15 @@
 import streamlit as st
 from openai import OpenAI
-from content_filter import filter_content
-import json
-import os
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import timedelta
+import time
 
-# --- Constants ---
-SETTINGS_FILE = "app_settings.json"
-
-# --- Helper Functions for Settings ---
-
-def load_settings():
-    """Loads settings from the JSON file."""
-    if os.path.exists(SETTINGS_FILE):
-        try:
-            with open(SETTINGS_FILE, 'r') as f:
-                settings = json.load(f)
-                # Ensure default keys exist
-                settings.setdefault("parent_password_hash", None)
-                settings.setdefault("banned_keywords", "")
-                settings.setdefault("keywords_locked", bool(settings.get("parent_password_hash")))
-                return settings
-        except (json.JSONDecodeError, IOError) as e:
-            st.error(f"Error loading settings file ({SETTINGS_FILE}): {e}. Using defaults.")
-    # Return defaults if file doesn't exist or loading failed
-    return {
-        "parent_password_hash": None,
-        "banned_keywords": "",
-        "keywords_locked": False
-    }
-
-def save_settings(password_hash, keywords, locked_state):
-    """Saves settings to the JSON file."""
-    settings = {
-        "parent_password_hash": password_hash,
-        "banned_keywords": keywords,
-        "keywords_locked": locked_state
-    }
-    try:
-        with open(SETTINGS_FILE, 'w') as f:
-            json.dump(settings, f, indent=4)
-    except IOError as e:
-        st.error(f"Error saving settings file ({SETTINGS_FILE}): {e}")
+from content_filter import filter_content
+from settings_helper import load_settings, save_settings
+from ParentPasswordManagement import ParentPasswordManagement
+from ContentFilteringKeywords import ContentFilteringKeywords
+from SettingsLock import SettingsLock
+from TimeLimit import TimeLimit
 
 # --- Load Initial Settings ---
 initial_settings = load_settings()
@@ -67,13 +35,17 @@ if "parent_password_hash" not in st.session_state:
     st.session_state["parent_password_hash"] = initial_settings["parent_password_hash"]
 if "banned_keywords" not in st.session_state:
      st.session_state.banned_keywords = initial_settings["banned_keywords"]
-if "keywords_locked" not in st.session_state:
-    st.session_state.keywords_locked = initial_settings["keywords_locked"]
+if "settings_locked" not in st.session_state:
+    st.session_state.settings_locked = initial_settings["settings_locked"]
 # --- Other transient state variables ---
 if "password_change_mode" not in st.session_state:
     st.session_state["password_change_mode"] = False
 if "password_verified" not in st.session_state:
     st.session_state["password_verified"] = False
+if "timer_start" not in st.session_state:
+    st.session_state.timer_start = None 
+if "time_limit" not in st.session_state:
+    st.session_state.time_limit = 0
 
 # --- Sidebar ---
 with st.sidebar:
@@ -85,115 +57,32 @@ with st.sidebar:
     )
     st.markdown("---")
 
-    # --- Parent Password Management ---
-    st.markdown("### Parent Password")
-    if not st.session_state.get("parent_password_hash"):
-        new_password = st.text_input("Set initial parent password:", type="password", key="init_pwd")
-        if st.button("Set Password"):
-            if new_password:
-                hashed_pwd = generate_password_hash(new_password)
-                st.session_state["parent_password_hash"] = hashed_pwd
-                st.session_state.keywords_locked = True
-                save_settings(hashed_pwd, st.session_state.banned_keywords, st.session_state.keywords_locked)
-                st.success("Password set successfully!")
-                st.rerun()
-            else:
-                st.warning("Password cannot be empty.")
-    else:
-        # Password Change Section
-        if not st.session_state.get("password_change_mode", False):
-             if st.button("Change Password"):
-                st.session_state["password_change_mode"] = True
-                st.session_state["password_verified"] = False
-                st.rerun()
-        else:
-            st.markdown("#### Change Password")
-            if not st.session_state.get("password_verified", False):
-                current_pwd_input = st.text_input("Current password:", type="password", key="current_pwd_verify")
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("Verify"):
-                        if check_password_hash(st.session_state.parent_password_hash, current_pwd_input):
-                            st.session_state["password_verified"] = True
-                            st.success("Password verified!")
-                            st.rerun()
-                        else:
-                            st.error("Incorrect current password!")
-                with col2:
-                     if st.button("Cancel##ChangePwd", key="cancel_change_pwd_verify"):
-                        st.session_state["password_change_mode"] = False
-                        st.session_state["password_verified"] = False
-                        st.rerun()
-
-            if st.session_state.get("password_verified", False):
-                new_pwd_input = st.text_input("New password:", type="password", key="new_pwd_input")
-                confirm_pwd_input = st.text_input("Confirm new password:", type="password", key="confirm_pwd_input")
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("Update Password"):
-                        if not new_pwd_input:
-                            st.warning("New password cannot be empty.")
-                        elif new_pwd_input == confirm_pwd_input:
-                            new_hashed_pwd = generate_password_hash(new_pwd_input)
-                            st.session_state["parent_password_hash"] = new_hashed_pwd
-                            st.session_state["password_change_mode"] = False
-                            st.session_state["password_verified"] = False
-                            save_settings(new_hashed_pwd, st.session_state.banned_keywords, st.session_state.keywords_locked)
-                            st.success("Password updated successfully!")
-                            st.rerun()
-                        else:
-                            st.error("New passwords don't match!")
-                with col2:
-                    if st.button("Cancel##UpdatePwd", key="cancel_change_pwd_update"):
-                        st.session_state["password_change_mode"] = False
-                        st.session_state["password_verified"] = False
-                        st.rerun()
-
+    # --- Parent Password Management Component ---
+    ParentPasswordManagement()
 
     # --- Content Filtering Keywords ---
-    st.markdown("### Content Filtering")
+    ContentFilteringKeywords()
 
-    has_password = bool(st.session_state.get("parent_password_hash"))
-    is_keywords_disabled = st.session_state.get("keywords_locked", True) and has_password
+    # --- Time Limit Settings ---
+    TimeLimit()
+    
+    # --- Settings Lock ---
+    SettingsLock()
 
-    if not has_password:
-        st.info("Set a parent password above to enable keyword locking.")
+    
 
-    current_keywords_value = st.session_state.get("banned_keywords", "")
-    new_keywords_value = st.text_area(
-        "Banned Keywords (comma-separated)",
-        value=current_keywords_value,
-        key="banned_keywords_input_area",
-        disabled=is_keywords_disabled,
-        help="Unlock below to edit."
-    )
-
-    # If unlocked, update session state with current text area value on each rerun
-    if not is_keywords_disabled:
-        if new_keywords_value != st.session_state.banned_keywords:
-             st.session_state.banned_keywords = new_keywords_value
-
-    # --- Keyword Locking/Unlocking Controls ---
-    if has_password:
-        st.markdown("---")
-        if st.session_state.get("keywords_locked", True):
-            st.write("Keyword list is locked.")
-            pwd_keyword_unlock = st.text_input("Enter password to edit keywords:", type="password", key="pwd_keyword_unlock")
-            if st.button("Unlock Keywords", key="btn_unlock_keywords"):
-                if check_password_hash(st.session_state.parent_password_hash, pwd_keyword_unlock):
-                    st.session_state.keywords_locked = False
-                    st.success("Keywords unlocked for editing.")
-                    st.rerun()
-                else:
-                    st.error("Incorrect password.")
-        else: # Keywords are unlocked
-            st.write("Keyword list is unlocked.")
-            if st.button("Save and Lock Keywords", key="btn_lock_keywords"):
-                st.session_state.keywords_locked = True
-                # Save current keywords (from session state) and lock state to file
-                save_settings(st.session_state.parent_password_hash, st.session_state.banned_keywords, True)
-                st.success("Keywords saved and locked.")
-                st.rerun()
+# --- Timer Check in Main App Area ---
+chat_disabled = False  # Flag to control chat input
+if st.session_state.timer_start is not None:
+    elapsed = time.time() - st.session_state.timer_start
+    remaining = st.session_state.time_limit - elapsed
+    if remaining <= 0:
+        st.warning("⏰ Time to take a break!")
+        chat_disabled = True
+    else:
+        hours, remainder = divmod(int(remaining), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        st.info(f"Time remaining: {hours:02d}:{minutes:02d}:{seconds:02d}")
 
 
 # --- Display Chat History ---
@@ -223,7 +112,7 @@ for i, message in enumerate(st.session_state.messages):
 
 
 # --- Handle New User Input ---
-if prompt := st.chat_input("Ask the assistant..."):
+if prompt := st.chat_input("Ask the assistant...", disabled=chat_disabled):
     # Add user message to state
     st.session_state.messages.append({
         "role": "user",
