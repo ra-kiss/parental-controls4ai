@@ -1,5 +1,6 @@
 import streamlit as st
 import time
+from settings_helper import save_settings
 
 def TimeLimit():
   # --- Time Limit Settings ---
@@ -16,9 +17,17 @@ def TimeLimit():
     with start:
         start_timer = st.button("Start", use_container_width=True, disabled=is_buttons_disabled)
         if start_timer:
-            st.session_state.time_limit = hours_input*60*60 + minutes_input*60
+            time_total = hours_input*60*60 + minutes_input*60
+            st.session_state.time_limit = time_total
             st.session_state.timer_start = time.time()
+            save_settings({
+                "time_limit": time_total,
+                "timer_start": time.time()
+            })
     with reset:
         reset_timer = st.button("Reset", use_container_width=True, disabled=is_buttons_disabled)
         if reset_timer:
             st.session_state.timer_start = None
+            save_settings({
+                "timer_start": None
+            })

@@ -43,9 +43,9 @@ if "password_change_mode" not in st.session_state:
 if "password_verified" not in st.session_state:
     st.session_state["password_verified"] = False
 if "timer_start" not in st.session_state:
-    st.session_state.timer_start = None 
+    st.session_state.timer_start = initial_settings["timer_start"]
 if "time_limit" not in st.session_state:
-    st.session_state.time_limit = 0
+    st.session_state.time_limit = initial_settings["time_limit"]
 
 # --- Sidebar ---
 with st.sidebar:

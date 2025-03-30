@@ -12,7 +12,11 @@ def ParentPasswordManagement():
               hashed_pwd = generate_password_hash(new_password)
               st.session_state["parent_password_hash"] = hashed_pwd
               st.session_state.settings_locked = True
-              save_settings(hashed_pwd, st.session_state.banned_keywords, st.session_state.settings_locked)
+              save_settings({
+                "parent_password_hash": hashed_pwd,
+                "banned_keywords": st.session_state.banned_keywords,
+                "settings_locked": st.session_state.settings_locked
+                })
               st.success("Password set successfully!")
               st.rerun()
           else:
@@ -30,7 +34,7 @@ def ParentPasswordManagement():
               current_pwd_input = st.text_input("Current password:", type="password", key="current_pwd_verify")
               col1, col2 = st.columns(2)
               with col1:
-                  if st.button("Verify"):
+                  if st.button("Verify", use_container_width=True):
                       if check_password_hash(st.session_state.parent_password_hash, current_pwd_input):
                           st.session_state["password_verified"] = True
                           st.success("Password verified!")
@@ -38,7 +42,7 @@ def ParentPasswordManagement():
                       else:
                           st.error("Incorrect current password!")
               with col2:
-                    if st.button("Cancel", key="cancel_change_pwd_verify"):
+                    if st.button("Cancel", key="cancel_change_pwd_verify", use_container_width=True):
                       st.session_state["password_change_mode"] = False
                       st.session_state["password_verified"] = False
                       st.rerun()
@@ -56,7 +60,11 @@ def ParentPasswordManagement():
                           st.session_state["parent_password_hash"] = new_hashed_pwd
                           st.session_state["password_change_mode"] = False
                           st.session_state["password_verified"] = False
-                          save_settings(new_hashed_pwd, st.session_state.banned_keywords, st.session_state.settings_locked)
+                          save_settings({
+                            "parent_password_hash": new_hashed_pwd,
+                            "banned_keywords": st.session_state.banned_keywords,
+                            "settings_locked": st.session_state.settings_locked
+                            })
                           st.success("Password updated successfully!")
                           st.rerun()
                       else:

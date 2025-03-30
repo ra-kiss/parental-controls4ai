@@ -15,6 +15,8 @@ def load_settings():
                 settings.setdefault("parent_password_hash", None)
                 settings.setdefault("banned_keywords", "")
                 settings.setdefault("settings_locked", bool(settings.get("parent_password_hash")))
+                settings.setdefault("time_limit", 0)
+                settings.setdefault("timer_start", None)
                 return settings
         except (json.JSONDecodeError, IOError) as e:
             st.error(f"Error loading settings file ({SETTINGS_FILE}): {e}. Using defaults.")
@@ -22,16 +24,15 @@ def load_settings():
     return {
         "parent_password_hash": None,
         "banned_keywords": "",
-        "settings_locked": False
+        "settings_locked": False,
+        "time_limit": 0,
+        "timer_start": None
     }
 
-def save_settings(password_hash, keywords, locked_state):
+def save_settings(new_settings):
     """Saves settings to the JSON file."""
-    settings = {
-        "parent_password_hash": password_hash,
-        "banned_keywords": keywords,
-        "settings_locked": locked_state
-    }
+    current_settings = load_settings();
+    settings = {**current_settings, **new_settings}
     try:
         with open(SETTINGS_FILE, 'w') as f:
             json.dump(settings, f, indent=4)

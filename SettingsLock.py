@@ -24,6 +24,10 @@ def SettingsLock():
           if st.button("Save and Lock Settings", key="btn_lock_settings"):
               st.session_state.settings_locked = True
               # Save current keywords (from session state) and lock state to file
-              save_settings(st.session_state.parent_password_hash, st.session_state.banned_keywords, True)
+              save_settings({
+                "parent_password_hash": st.session_state.parent_password_hash,
+                "banned_keywords": st.session_state.banned_keywords,
+                "settings_locked": True
+                })
               st.success("Settings saved and locked.")
               st.rerun()
