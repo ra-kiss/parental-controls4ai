@@ -1,0 +1,7 @@
+{
+    "parent_password_hash": "scrypt:32768:8:1$ouUJ083sCGiYVf3x$59151941c4e2d12f77d5db9097f25c2641a4452ef9ac969605ebcdc32fdc477f0a43f5fdb0811dbb3ea01178010b42dc3f6d11978c7a2b3d0811bee087e19377",
+    "banned_keywords": "fortnite",
+    "settings_locked": true,
+    "time_limit": 10800,
+    "timer_start": 1743359967.786919
+}
