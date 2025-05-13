@@ -4,9 +4,20 @@ import settings_helper
 import password_manager as pm
 import content_filter as cf
 import time_manager as tm
+from streamlit_local_storage import LocalStorage
+import uuid
+
+localS = LocalStorage()
+myUuid = localS.getItem('uuid')
+
+if not myUuid:
+    myUuid = str(uuid.uuid4())
+    localS.setItem('uuid', myUuid)
+
+st.write(myUuid)
 
 # --- Load Initial Settings & OpenAI Client ---
-initial_settings = settings_helper.load_settings()
+initial_settings = settings_helper.load_settings(myUuid)
 if "OPENAI_API_KEY" not in st.secrets:
     st.error("OPENAI_API_KEY not found. Please add one to streamlit secrets at `.streamlit/secrets.toml`")
     st.stop()
@@ -46,7 +57,7 @@ needs_save_after_reset_check = time_state_updates.pop("settings_were_updated_by_
 for key, value in time_state_updates.items():
     st.session_state[key] = value
 if needs_save_after_reset_check:
-    settings_helper.save_settings(st.session_state)
+    settings_helper.save_settings(st.session_state, myUuid)
 
 total_usage_seconds_today, current_limit_seconds, is_exceeded_now = \
     tm.calculate_current_usage_and_limit_status(
@@ -65,7 +76,7 @@ if is_exceeded_now != st.session_state.get("time_exceeded_flag", False):
         )
         st.session_state.time_used_today_seconds = c_t
         st.session_state.active_session_start_time_iso = n_as
-    settings_helper.save_settings(st.session_state)
+    settings_helper.save_settings(st.session_state, myUuid)
 
 # --- Sidebar UI ---
 with st.sidebar:
@@ -85,7 +96,7 @@ with st.sidebar:
                     )
                     st.session_state.time_used_today_seconds = c_t
                     st.session_state.active_session_start_time_iso = n_as
-                settings_helper.save_settings(st.session_state)
+                settings_helper.save_settings(st.session_state, myUuid)
                 st.success("Password set!")
                 st.rerun()
             else:
@@ -132,7 +143,7 @@ with st.sidebar:
                             st.session_state.password_change_mode = False
                             st.session_state.password_verified = False
                             st.session_state.stored_current_pwd = None  # Clear stored password
-                            settings_helper.save_settings(st.session_state)
+                            settings_helper.save_settings(st.session_state, myUuid)
                             st.success("Password updated!")
                             st.rerun()
                         else:
@@ -160,7 +171,7 @@ with st.sidebar:
             pwd_kw_unlock = st.text_input("Password to edit keywords:", type="password", key="kw_unlock_pwd_sidebar")
             if st.button("Unlock Keywords", key="kw_unlock_btn_sidebar"):
                 if pm.unlock_keywords(st.session_state, pwd_kw_unlock):
-                    settings_helper.save_settings(st.session_state)
+                    settings_helper.save_settings(st.session_state, myUuid)
                     st.success("Keywords unlocked.")
                     st.rerun()
                 else:
@@ -176,7 +187,7 @@ with st.sidebar:
                     st.session_state.time_used_today_seconds = c_t
                     st.session_state.active_session_start_time_iso = n_as
                 pm.lock_keywords(st.session_state)
-                settings_helper.save_settings(st.session_state)
+                settings_helper.save_settings(st.session_state, myUuid)
                 st.success("Keywords saved and locked.")
                 st.rerun()
     st.markdown("---")
@@ -238,7 +249,7 @@ with st.sidebar:
             reset_vals = tm.reset_timer_logic(st.session_state.time_limit_active)
             for k, v in reset_vals.items():
                 st.session_state[k] = v
-            settings_helper.save_settings(st.session_state)
+            settings_helper.save_settings(st.session_state, myUuid)
             st.info("Timer usage reset. Click 'Save and Exit' to apply all changes.")
             st.rerun()
 
@@ -252,7 +263,7 @@ with st.sidebar:
                     st.session_state.active_session_start_time_iso
                 )
                 st.session_state.time_used_today_seconds = c_t
-            settings_helper.save_settings(st.session_state)
+            settings_helper.save_settings(st.session_state, myUuid)
             st.session_state.in_time_management_mode = False
             st.success("Time settings updated.")
             st.rerun()
