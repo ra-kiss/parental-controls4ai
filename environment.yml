@@ -90,8 +90,7 @@ dependencies:
   - packaging=24.2
   - pandas=2.2.3
   - pillow=11.1.0
-  - pip=25.0:
-    - streamlit-local-storage==0.0.25
+  - pip=25.0
   - protobuf=4.25.3
   - pyarrow=19.0.0
   - pydantic=2.10.3
@@ -138,3 +137,5 @@ dependencies:
   - zlib=1.2.13
   - zstd=1.5.6
   - Werkzeug
+  - pip:
+    - streamlit-local-storage==0.0.25
