@@ -1,40 +1,47 @@
 import json
 import os
+import streamlit as st
+import time_manager
 
-# --- Constants ---
 SETTINGS_FILE = "app_settings.json"
 
-# --- Helper Functions for Settings ---
+def get_default_settings():
+    defaults = {
+        "parent_password_hash": None,
+        "banned_keywords": "",
+        "keywords_locked": False,
+    }
+    time_defaults = time_manager.get_default_time_settings()
+    defaults.update(time_defaults)
+    return defaults
+
 def load_settings():
-    """Loads settings from the JSON file."""
+    defaults = get_default_settings()
     if os.path.exists(SETTINGS_FILE):
         try:
             with open(SETTINGS_FILE, 'r') as f:
                 settings = json.load(f)
-                # Ensure default keys exist
-                settings.setdefault("parent_password_hash", None)
-                settings.setdefault("banned_keywords", "")
-                settings.setdefault("settings_locked", bool(settings.get("parent_password_hash")))
-                settings.setdefault("time_limit", 0)
-                settings.setdefault("timer_start", None)
-                return settings
+            for key, default_value in defaults.items():
+                settings.setdefault(key, default_value)
+            time_manager.ensure_time_settings_keys(settings)
+            if settings.get("parent_password_hash") and "keywords_locked" not in settings:
+                settings["keywords_locked"] = True
+            elif not settings.get("parent_password_hash"):
+                settings["keywords_locked"] = False
+            return settings
         except (json.JSONDecodeError, IOError) as e:
             st.error(f"Error loading settings file ({SETTINGS_FILE}): {e}. Using defaults.")
-    # Return defaults if file doesn't exist or loading failed
-    return {
-        "parent_password_hash": None,
-        "banned_keywords": "",
-        "settings_locked": False,
-        "time_limit": 0,
-        "timer_start": None
-    }
+    return defaults
 
-def save_settings(new_settings):
-    """Saves settings to the JSON file."""
-    current_settings = load_settings();
-    settings = {**current_settings, **new_settings}
+def save_settings(settings):
+    persisted_keys = [
+        "parent_password_hash", "banned_keywords", "keywords_locked",
+        "time_limit_active", "time_limit_minutes", "time_used_today_seconds",
+        "date_for_time_used", "active_session_start_time_iso", "time_exceeded_flag"
+    ]
+    settings_to_save = {key: settings.get(key) for key in persisted_keys}
     try:
         with open(SETTINGS_FILE, 'w') as f:
-            json.dump(settings, f, indent=4)
+            json.dump(settings_to_save, f, indent=4)
     except IOError as e:
         st.error(f"Error saving settings file ({SETTINGS_FILE}): {e}")

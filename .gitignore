@@ -2,3 +2,4 @@
 .streamlit/secrets.toml
 __pycache__/*
 __pycache__/
+app_settings.json

@@ -1,7 +1,11 @@
 {
-    "parent_password_hash": "scrypt:32768:8:1$ouUJ083sCGiYVf3x$59151941c4e2d12f77d5db9097f25c2641a4452ef9ac969605ebcdc32fdc477f0a43f5fdb0811dbb3ea01178010b42dc3f6d11978c7a2b3d0811bee087e19377",
+    "parent_password_hash": "scrypt:32768:8:1$xxKKje1lUaUl080b$5ece4b63326f4719a34670d91ef52ac6aa1a767614d2fd142dc0401c1fb62c4b44a3e39a8dc0854866b46d508c7982c8fe340d451d2a213ac5344f246e90aebf",
     "banned_keywords": "fortnite",
-    "settings_locked": true,
-    "time_limit": 10800,
-    "timer_start": 1743359967.786919
+    "keywords_locked": true,
+    "time_limit_active": true,
+    "time_limit_minutes": 30,
+    "time_used_today_seconds": 0,
+    "date_for_time_used": "2025-05-13",
+    "active_session_start_time_iso": "2025-05-13T14:09:59.853020",
+    "time_exceeded_flag": false
 }
