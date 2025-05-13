@@ -14,7 +14,7 @@ if not myUuid:
     myUuid = str(uuid.uuid4())
     localS.setItem('uuid', myUuid)
 
-st.write(myUuid)
+# st.write(myUuid)
 
 # --- Load Initial Settings & OpenAI Client ---
 initial_settings = settings_helper.load_settings(myUuid)
